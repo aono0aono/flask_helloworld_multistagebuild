@@ -17,7 +17,7 @@ services:
   app:
     build:
       context: ./app
-      dockerfile: ./Dockerfile-msb
+      dockerfile: ./Dockerfile
     image: "flask"
     container_name: "flask"
 

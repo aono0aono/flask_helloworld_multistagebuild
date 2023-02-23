@@ -1,8 +1,25 @@
-# pull official base image
-#FROM python:3.9.6-slim-buster
-FROM python:3.11.2-slim-bullseye
+# ビルド用コンテナ
+FROM python:3.11.2-bullseye as builder
 
-# set environment variables ref:https://www.lifewithpython.com/2021/05/python-docker-env-vars.html
+WORKDIR /opt/app
+
+COPY requirements.lock /opt/app
+RUN pip install -r requirements.lock
+
+# 実行用コンテナ
+FROM python:3.11.2-slim-bullseye as runner
+
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin/uwsgi /usr/local/bin/uwsgi
+
+# アプリをインストール
+RUN apt update && \
+    apt install -y libxml2 && \
+    apt autoremove -y && \
+    apt clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# PythonのDocker用環境変数 ref:https://www.lifewithpython.com/2021/05/python-docker-env-vars.html
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \    
     PYTHONUTF8=1 \
@@ -11,28 +28,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     # タイムゾーン指定
     TZ=Asia/Tokyo
 
-# create itemsearch directory for the itemsearch user
+# ホームディレクトリ
 ENV APP_HOME=/var/www/src
 RUN mkdir -p $APP_HOME
     
-# set work directory
+# ワークディレクトリ
 WORKDIR $APP_HOME
 
-COPY ./requirements.txt .
-# Install applications
- 
-RUN apt update && \
-    #apt install -y build-essential net-tools python3-dev python3-pandas libpq-dev && \
-    apt install -y build-essential && \
-    apt autoremove -y && \
-    apt clean && \
-    pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
-
-# copy project
+# ソースをワークディレクトリにコピー
 COPY ./src $APP_HOME
 
 EXPOSE 8000
-VOLUME ["/var/www/src"]
+#VOLUME ["/var/www/src"]
 
 CMD ["uwsgi", "--ini", "/var/www/src/uwsgi.ini"]

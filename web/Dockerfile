@@ -1,14 +1,7 @@
-FROM nginx:1.21.3
+FROM nginx:1.23-alpine
 
 # set environment variables
-ENV APP_HOME=/var/www/src \
-    TZ=Asia/Tokyo
-
-# create source directory
-RUN mkdir -p $APP_HOME
-
-# set work directory
-WORKDIR $APP_HOME
+ENV TZ=Asia/Tokyo
 
 COPY ./nginx /etc/nginx/
 
